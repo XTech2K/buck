@@ -1,11 +1,11 @@
 from random import shuffle
 
-SUITES = ['d', 'h', 'c', 's']
-EXTENDED_SUITES = ['diamonds', 'hearts', 'clubs', 'spades']
+SUITS = ['d', 'h', 'c', 's']
+EXTENDED_SUITS = ['diamonds', 'hearts', 'clubs', 'spades']
 REDS = ['d', 'h']
 VALUES = ['9', 't', 'j', 'q', 'k', 'a']
 
-deck = [v + s for s in SUITES for v in VALUES]
+deck = [v + s for s in SUITS for v in VALUES]
 
 
 def deal():
@@ -17,22 +17,22 @@ def deal():
 
 
 def eval_card(card, trump, led, rule):
-    value, suite = VALUES.index(card[0]) + 1, card[1]
-    if rule is None and value == 3 and (suite in REDS) == (trump in REDS):
-        return 14 if suite == trump else 13
-    elif rule is None and suite == trump:
+    value, suit = VALUES.index(card[0]) + 1, card[1]
+    if rule is None and value == 3 and (suit in REDS) == (trump in REDS):
+        return 14 if suit == trump else 13
+    elif rule is None and suit == trump:
         return value + 6
-    elif suite == led:
+    elif suit == led:
         return value if rule != 'l' else value * -1 + 7
     else:
         return 0
 
 
 def validate_trump(trump):
-    if trump in SUITES:
+    if trump in SUITS:
         return trump
-    elif trump in EXTENDED_SUITES:
-        return SUITES[EXTENDED_SUITES.index(trump)]
+    elif trump in EXTENDED_SUITS:
+        return SUITS[EXTENDED_SUITS.index(trump)]
     else:
         print("{} is an invalid trump!".format(trump))
         return None
@@ -49,7 +49,7 @@ def validate_play(play, hand, led):
     elif hand[play][-1] != led:
         other_options = [card[-1] == led for card in hand]
         if sum(other_options) > 0:
-            print("You could have played along with the led suite!")
+            print("You could have played along with the led suit!")
         else:
             return play
     else:
