@@ -3,57 +3,48 @@ MODIFIERS = ['l', 'h']
 
 
 class Bid:
-    def __init__(self, bid, modifier):
+    def __init__(self, bid , modifier=None):
         self.value = bid
         self.modifier = modifier
 
-    def with_mod(self):
-        return self.value + self.modifier if self.modifier is not None else self.value
 
-    def required_value(self):
-        return int(self.value)
+def value(bid):
+    return int(bid[:-1] if bid[-1] in MODIFIERS else bid)
 
-    def calculate_scores(self, bidding_team, tricks, scores):
-        non_bidding_team = (bidding_team + 1) % 2
-        if self.value in BIDS[-4:]:
-            if tricks[bidding_team] == 6:
-                scores[bidding_team] += self.value
-                scores[non_bidding_team] -= self.value
-            else:
-                scores[bidding_team] -= self.value
-                scores[non_bidding_team] += tricks[non_bidding_team]
-        else:
-            if tricks[bidding_team] >= self.value:
-                scores[bidding_team] += self.value
-            else:
-                scores[bidding_team] -= 6
+def modifier(bid):
+    return bid[-1] if bid[-1] in MODIFIERS else None
 
-            if tricks[non_bidding_team] == 0:
-                scores[non_bidding_team] -= 6
-            else:
-                scores[non_bidding_team] += tricks[non_bidding_team]
-        return scores
+def parse_bid(bid):
+    return Bid(bid[:-1], bid[-1]) if bid[-1] in MODIFIERS else Bid(bid, None)
 
+def update_scores(game):
+    bid_value = value(game.winning_bid())
+    bidding = game.highest_bidder % 2
+    non_bidding = (bidding + 1) % 2
+    game.scores[bidding] += bid_value if game.taken[bidding] >= min(bid_value, 6) else -max(bid_value, 6)
+    game.scores[non_bidding] += game.taken[non_bidding] if game.taken[non_bidding] > 0 else -max(bid_value, 6)
 
-def validate_bid(bid_str, prev, is_dealer):
-    if bid_str[-1] in MODIFIERS:
-        bid = Bid(bid_str[:-1], bid_str[-1])
-    else:
-        bid = Bid(bid_str, None)
+def validate_bid(bid_str, prev_str, is_dealer):
+    if len(bid_str) == 0:
+        print("Must enter a bid!")
+        return None
 
-    if bid.value not in BIDS:
-        print("Invalid bid of {}!".format(bid.with_mod()))
+    bid = parse_bid(bid_str)
+    prev = parse_bid(prev_str) if prev_str is not None else Bid("pass")
+
+    if bid.value not in BIDS or bid.value == "pass" and bid.modifier is not None:
+        print("Invalid bid of {}!".format(bid_str))
     elif bid.value == "pass":
         if prev.value == "pass":
             print("Cannot pass the first bid!")
         else:
-            return bid
+            return bid_str
     elif bid.modifier is not None and bid.value not in BIDS[1:5]:
         print("Bid of {} cannot have a modifier!".format(bid.value))
     elif BIDS.index(bid.value) <= BIDS.index(prev.value) if prev.modifier is None else BIDS.index(prev.bid) - 1:
-        print("Bid of {} is too low to beat existing bid of {}!".format(bid.with_mod(), prev.with_mod()))
+        print("Bid of {} is too low to beat existing bid of {}!".format(bid_str, prev_str))
     elif bid.value == "48" and not (prev.value == "24" and is_dealer):
         print("Cannot Hossenfeffer unless last bid was 24 and you are dealer!")
     else:
-        return bid
+        return bid_str
     return None

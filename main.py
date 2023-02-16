@@ -1,62 +1,65 @@
 import bid
 import deck
+
+from database import Database
 from game import Game
-from player import Player
 
 
-def validated_input(prompt, function, *args):
+def validated_input(game, player, prompt, function, *args):
+    prompt = game.names[player] + prompt
+    game.active_player = player
+    db.update_game(game)
     result = None
     while result is None:
         result = function(input(prompt).lower(), *args)
     return result
 
 
-players = [Player() for i in range(4)]
-game = Game(players)
+db = Database()
+game = db.create_game()
+print("Game ID: {}".format(game.game_id))
+
+names = ['0', '1', '2', '3'] # TODO: player customizable names
+game.names = names
 
 while max(game.scores) < 52:
-    hands = deck.deal()
+    game.reset_round()
     for i in range(4):
-        players[i].hand = hands[i]
-        print("Player {}'s hand: {}".format(i, players[i].hand))
+        print("{}'s hand: {}".format(game.names[i], game.hands[i]))
 
-    current_bid = bid.Bid("pass", None)
-    final_bidder = 0
-    bidder = game.dealer
     for i in range(4):
-        bidder = (bidder + 1) % 4
-        new_bid = validated_input("Player {}'s bid: ".format(bidder), bid.validate_bid, current_bid, bidder == game.dealer)
-        if new_bid.value != "pass":
-            current_bid = new_bid
-            final_bidder = bidder
+        bidder = (game.dealer + 1 + i) % 4
+        new_bid = validated_input(game, bidder, "'s bid: ", bid.validate_bid, game.winning_bid(), bidder == game.dealer)
+        game.bids[bidder] = new_bid
+        if new_bid != "pass":
+            game.highest_bidder = bidder
 
-    req_tricks = current_bid.required_value()
+    req_tricks = bid.value(game.bids[game.highest_bidder])
     trump = None
 
-    if current_bid.modifier is None:
-        leader = final_bidder
-        trump = validated_input("Player {} chooses trump: ".format(final_bidder), deck.validate_trump)
+    if bid.modifier(game.winning_bid()) is None:
+        game.leader = game.highest_bidder
+        trump = validated_input(game, game.highest_bidder, " chooses trump: ", deck.validate_trump)
     else:
-        leader = (game.dealer + 1) % 4
+        game.leader = (game.highest_bidder - 1) % 4
 
-    tricks = [0, 0]
-    for i in range(6):
-        in_play = [None] * 4
+    for trick in game.tricks:
         led = None
-        for j in range(4):
-            current_player = (leader + j) % 4
-            print("Player {}'s hand: {}".format(current_player, hands[current_player]))
-            print("Currently played cards: {}".format(in_play))
-            play = validated_input("Player {} plays: ".format(current_player), deck.validate_play, players[current_player].hand, led)
-            card = players[current_player].hand.pop(play)
+        for i in range(4):
+            current_player = (game.leader + i) % 4
+            print("Player {}'s hand: {}".format(current_player, game.hands[current_player]))
+            print("Currently played cards: {}".format(trick))
+            play = validated_input(game, current_player, " plays: ", deck.validate_play, game.hands[current_player], trump, led)
+            card = game.hands[current_player].pop(play)
             if led is None:
                 led = card[-1]
-            in_play[current_player] = card
-        evals = [deck.eval_card(card, led, trump, current_bid.modifier) for card in in_play]
+            trick[current_player] = card
+        evals = [deck.eval_card(card, led, trump, bid.modifier(game.winning_bid())) for card in trick]
         winner = evals.index(max(evals))
-        print("This trick is won by {} with {}!".format(winner, in_play[winner]))
-        tricks[winner % 2] += 1
-        leader = winner
-    game.scores = current_bid.calculate_scores((final_bidder + 1) % 2, tricks, game.scores)
+        print("This trick is won by {} with {}!".format(game.names[winner], trick[winner]))
+        game.taken[winner % 2] += 1
+        game.leader = winner
+
+    game.scores = bid.calculate_scores((final_bidder + 1) % 2, tricks, game.scores)
     print("Scores updated to {}".format(game.scores))
     game.dealer = (game.dealer + 1) % 4
