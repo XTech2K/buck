@@ -41,7 +41,7 @@ def true_suit(card, trump):
     if trump is None:
         return suit
     if card[0] == 'j' and (suit in REDS) == (trump in REDS):
-        return trump:
+        return trump
     return suit
 
 

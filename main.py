@@ -15,7 +15,7 @@ def validated_input(game, player, prompt, function, *args):
     return result
 
 
-db = Database()
+db = Database(reset=True)
 game = db.create_game()
 print("Game ID: {}".format(game.game_id))
 
@@ -60,6 +60,6 @@ while max(game.scores) < 52:
         game.taken[winner % 2] += 1
         game.leader = winner
 
-    game.scores = bid.calculate_scores((final_bidder + 1) % 2, tricks, game.scores)
+    game.scores = bid.calculate_scores((game.highest_bidder + 1) % 2, game.taken, game.scores)
     print("Scores updated to {}".format(game.scores))
     game.dealer = (game.dealer + 1) % 4

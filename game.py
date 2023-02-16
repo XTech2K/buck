@@ -35,13 +35,16 @@ class Game:
         self.tricks = [[None] * 4 for _ in range(6)]
         self.taken = [0, 0]
 
-    def to_json(self, player_id=None):
+    def to_json(self, player_id=None, pretty=False):
         d = vars(self).copy()
         if player_id:
             d.pop("hands")
             d["player_id"] = player_id
             d["hand"] = self.hands[player_id]
-        return json.dumps(d, sort_keys=True)
+        if pretty:
+            return json.dumps(d, sort_keys=True, indent=2)
+        else:
+            return json.dumps(d, sort_keys=True)
 
     def winning_bid(self): # TODO: make property?
         return self.bids[self.highest_bidder] if self.highest_bidder is not None else None

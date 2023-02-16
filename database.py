@@ -4,14 +4,18 @@ from game import Game
 
 
 class Database:
-    def __init__(self):
-        self.database = sqlite3.connect("db.sqlite3")
+    def __init__(self, reset=False):
+        self.database = sqlite3.connect("db.sqlite3", check_same_thread=False)
         cur = self.database.cursor()
+        if reset:
+            try:
+                cur.execute("DROP TABLE game")
+            except sqlite3.OperationalError:
+                print("no table found") # TODO: Improve error message here?
         try:
-            cur.execute("DROP TABLE game")
+            cur.execute("CREATE TABLE game(id, json)")
         except sqlite3.OperationalError:
-            print("no table found") # TODO: Improve error message here?
-        cur.execute("CREATE TABLE game(id, json)")
+            print("table already exists")
         self.database.commit()
 
     def create_game(self):
